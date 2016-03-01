@@ -22,6 +22,7 @@
 (define-rhea solver_new (_fun -> _solver-ptr) #:wrap (allocator solver_delete))
 (define-rhea solver_add_constraint (_fun _solver-ptr _constraint-ptr -> _int))
 (define-rhea solver_remove_constraint (_fun _solver-ptr _constraint-ptr -> _void))
+(define-rhea solver_add_stay (_fun _solver-ptr _variable-ptr _strength-ptr -> _void))
 (define-rhea solver_suggest (_fun _solver-ptr _variable-ptr _double -> _int))
 (define-rhea solver_add_edit_var (_fun _solver-ptr _variable-ptr -> _void))
 (define-rhea solver_begin_edit (_fun _solver-ptr -> _void))
@@ -79,14 +80,14 @@
     (define/public (add-edit-var var)
       (send var make-edit-var llsolver))
     
-    (define/public (add-constraint c)
-      (send c enable llsolver))
+    (define/public (add-constraint c [priority (required-strength)])
+      (send c enable llsolver priority))
     
     (define/public (remove-constraint c)
       (send c disable llsolver))
     
     (define/public (add-stay var [priority (weak-strength)])
-      (send (send var stay-constraint priority) enable llsolver))
+      (send var add-stay-constraint llsolver priority))
     
     (define/public (suggest-value var v)
       (send var suggest-value llsolver v))
@@ -181,10 +182,8 @@
     (define/public (get-expression)
       (make-object cassowary-expression% (variable_expression llvariable)))
     
-    (define/public (stay-constraint [priority (strength_weak)])
-      (let* ((sc (= (value))))
-        (send sc change-strength priority)
-        sc))
+    (define/public (add-stay-constraint llsolver [priority (strength_weak)])
+      (solver_add_stay llsolver llvariable priority))
     
     (define/public (make-edit-var llsolver)
       (solver_add_edit_var llsolver llvariable))
@@ -217,7 +216,8 @@
     (define/public (change-strength prio)
       (constraint_change_strength llconstraint prio))
     
-    (define/public (enable llsolver)
+    (define/public (enable llsolver [priority (strength_required)])
+      (change-strength priority)
       (eq? 0 (solver_add_constraint llsolver llconstraint)))
     
     (define/public (disable llsolver)

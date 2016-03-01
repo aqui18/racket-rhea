@@ -44,6 +44,10 @@ extern "C" {
             s->remove_constraint(*c);
         }
 
+        EXPORT void solver_add_stay(solver* s, variable* v, strength* str) {
+            s->add_stay(*v, *str);
+        }
+
         EXPORT int solver_suggest(simplex_solver* s, variable* v, double x) {
             try {
                 s->suggest(*v, x);

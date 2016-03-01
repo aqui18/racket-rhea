@@ -13,11 +13,11 @@
 
 (define (add-delete1-test)
   (test-case
-   ""
+   "add-delete1-test"
    (define solver (new cassowary%))
    (define x (new cassowary-variable% [initial-value 100.0]))
 
-   (send solver add-stay x)
+   (send solver add-constraint (send x = 100.0) (send solver weak-strength))
    
    (define c10 (send x <= 10))
    (define c20 (send x <= 20))
@@ -51,13 +51,13 @@
 
 (define (add-delete2-test)
   (test-case
-   ""
+   "add-delete2-test"
    (define solver (new cassowary%))
    (define x (new cassowary-variable% [initial-value 100.0]))
    (define y (new cassowary-variable% [initial-value 120.0]))
 
-   (send solver add-stay x (send solver weak-strength))
-   (send solver add-stay y (send solver strong-strength))
+   (send solver add-constraint (send x = 100.0) (send solver weak-strength))
+   (send solver add-constraint (send y = 120.0) (send solver strong-strength))
    
    (define c10 (send x <= 10))
    (define c20 (send x <= 20))
@@ -97,62 +97,68 @@
    ))
 
 (define (test-edit2vars)
-  (define x (make-object cassowary-variable% 20))
-  (define y (make-object cassowary-variable% 30))
-  (define z (make-object cassowary-variable% 120))
+  (test-case
+   "test-edit2vars"
+   (define x (make-object cassowary-variable% 20))
+   (define y (make-object cassowary-variable% 30))
+   (define z (make-object cassowary-variable% 120))
 
-  (define solver (new cassowary%))
+   (define solver (new cassowary%))
 
-  (send solver add-stay x)
-  (send solver add-stay z)
-  (send solver add-constraint (send z = (send (send x * 2) + y)))
-  (sat? solver)
-  (check approx? (send x value) 20)
-  (check approx? (send y value) 80)
-  (check approx? (send z value) 120)
+   (send solver add-stay x)
+   (send solver add-stay z)
+   (send solver add-constraint (send z = (send (send x * 2) + y)))
+   (sat? solver)
+   (check approx? (send x value) 20)
+   (check approx? (send y value) 80)
+   (check approx? (send z value) 120)
 
-  
-  (send solver add-edit-var x)
-  (send solver add-edit-var y)
-  (send solver begin-edit)
-  (send solver edit-value x 10)
-  (send solver edit-value y 5)
-  (send solver resolve)
-  (check approx? (send x value) 10)
-  (check approx? (send y value) 5)
-  (check approx? (send z value) 25)
+   
+   (send solver add-edit-var x)
+   (send solver add-edit-var y)
+   (send solver begin-edit)
+   (send solver edit-value x 10)
+   (send solver edit-value y 5)
+   (send solver resolve)
+   (check approx? (send x value) 10)
+   (check approx? (send y value) 5)
+   (check approx? (send z value) 25)
 
-  (send solver edit-value x -10)
-  (send solver edit-value y 15)
-  (send solver resolve)
-  (check approx? (send x value) -10)
-  (check approx? (send y value) 15)
-  (check approx? (send z value) -5)
-  (send solver end-edit)
-  (check approx? (send x value) -10)
-  (check approx? (send y value) 15)
-  (check approx? (send z value) -5)
-)
+   (send solver edit-value x -10)
+   (send solver edit-value y 15)
+   (send solver resolve)
+   (check approx? (send x value) -10)
+   (check approx? (send y value) 15)
+   (check approx? (send z value) -5)
+   (send solver end-edit)
+   (check approx? (send x value) -10)
+   (check approx? (send y value) 15)
+   (check approx? (send z value) -5)
+   ))
 
 (define (test-inconsistent1)
-  (define x (new cassowary-variable%))
-  (define solver (new cassowary%))
-  (send solver add-constraint (send x = 10))
-  (sat? solver)
-  (check-equal? #f (send solver add-constraint (send x = 5)))
-  )
+  (test-case
+   "test-inconsistent1"
+   (define x (new cassowary-variable%))
+   (define solver (new cassowary%))
+   (send solver add-constraint (send x = 10))
+   (sat? solver)
+   (check-equal? #f (send solver add-constraint (send x = 5)))
+   ))
 
 (define (test-suggest)
-  (define x (new cassowary-variable%))
-  (define solver (new cassowary%))
+  (test-case
+   "test-suggest"
+   (define x (new cassowary-variable%))
+   (define solver (new cassowary%))
 
-  (send solver add-constraint (send x <= 10))
-  (sat? solver)
-  (check approx? (send x value) 10)
+   (send solver add-constraint (send x <= 10))
+   (sat? solver)
+   (check approx? (send x value) 10)
 
-  (check-equal? (send solver suggest-value x 4) #t)
-  (check approx? (send x value) 4)
-)
+   (check-equal? (send solver suggest-value x 4) #t)
+   (check approx? (send x value) 4)
+))
 
 
 (define rhea-tests 
