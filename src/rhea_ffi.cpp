@@ -4,16 +4,16 @@
 #include "simplex_solver.hpp"
 
 #if defined(_MSC_VER)
-    //  Microsoft
-    #define EXPORT __declspec(dllexport)
-    #define IMPORT __declspec(dllimport)
+//  Microsoft
+#define EXPORT __declspec(dllexport)
+#define IMPORT __declspec(dllimport)
 #elif defined(__GNUC__)
-    #define EXPORT __attribute__((visibility("default")))
-    #define IMPORT
+#define EXPORT __attribute__((visibility("default")))
+#define IMPORT
 #else
-    #define EXPORT
-    #define IMPORT
-    #pragma warning Unknown dynamic link import/export semantics.
+#define EXPORT
+#define IMPORT
+#pragma warning Unknown dynamic link import/export semantics.
 #endif
 
 extern "C" {
@@ -21,72 +21,66 @@ extern "C" {
     {
 
         // solver
-        EXPORT void* solver_new() {
+        EXPORT simplex_solver* solver_new() {
             simplex_solver* s = new simplex_solver();
             s->set_autosolve(false);
-            return reinterpret_cast<void*>(s);
+            return s;
         }
 
-        EXPORT void solver_delete(void* v) {
-            simplex_solver* s = reinterpret_cast<simplex_solver*>(v);
-            delete s;
+        EXPORT void solver_delete(simplex_solver* v) {
+            delete v;
         }
 
-        EXPORT void solver_add_constraint(void* s, void* c) {
-            (reinterpret_cast<solver*>(s))->
-                add_constraint(*reinterpret_cast<constraint*>(c));
+        EXPORT void solver_add_constraint(solver* s, constraint* c) {
+            s->add_constraint(*c);
         }
 
-        EXPORT void solver_remove_constraint(void* s, void* c) {
-            (reinterpret_cast<solver*>(s))->
-                remove_constraint(*reinterpret_cast<constraint*>(c));
+        EXPORT void solver_remove_constraint(solver* s, constraint* c) {
+            s->remove_constraint(*c);
         }
 
-        EXPORT int solver_suggest(void* s, void* v, double x) {
+        EXPORT int solver_suggest(simplex_solver* s, variable* v, double x) {
             try {
-                (reinterpret_cast<simplex_solver*>(s))->
-                    suggest(*reinterpret_cast<variable*>(v), x);
+                s->suggest(*v, x);
                 return 0;
             } catch (...) {
                 return 1;
             }
         }
 
-        EXPORT void solver_add_edit_var(void* s, void* v) {
-            reinterpret_cast<simplex_solver*>(s)->
-                add_edit_var(*reinterpret_cast<variable*>(v));
+        EXPORT void solver_add_edit_var(simplex_solver* s, variable* v) {
+            s->add_edit_var(*v);
         }
 
-        EXPORT void solver_begin_edit(void* s) {
-            reinterpret_cast<simplex_solver*>(s)->begin_edit();
+        EXPORT void solver_begin_edit(simplex_solver* s) {
+            s->begin_edit();
         }
 
-        EXPORT void solver_edit_value(void* s, void* var, double v) {
-            reinterpret_cast<simplex_solver*>(s)->
-                suggest_value(*reinterpret_cast<variable*>(var), v);
+        EXPORT void solver_edit_value(simplex_solver* s, variable* var, double v) {
+            s->suggest_value(*var, v);
         }
 
-        EXPORT int solver_resolve(void* s, void* var, double v) {
+        EXPORT int solver_resolve(simplex_solver* s) {
             try {
-                reinterpret_cast<simplex_solver*>(s)->resolve();
+                s->resolve();
                 return 0;
             } catch (...) {
                 return 1;
             }
         }
 
-        EXPORT int solver_end_edit(void* s) {
+        EXPORT int solver_end_edit(simplex_solver* s) {
             try {
-                reinterpret_cast<simplex_solver*>(s)->end_edit();
+                s->end_edit();
                 return 0;
             } catch (...) {
                 return 1;
             }
         }
 
-        EXPORT int solver_solve(void* s) {
+        EXPORT int solver_solve(solver* s) {
             try {
-                reinterpret_cast<solver*>(s)->solve();
+                s->solve();
                 return 0;
             } catch (...) {
                 return 1;
@@ -94,36 +88,36 @@ extern "C" {
         }
 
         // variables
-        EXPORT void* variable_new(double value) {
-            variable v(value);
-            linear_expression* e = new linear_expression(v, 1, 0);
-            return reinterpret_cast<void*>(e);
+        EXPORT variable* variable_new(double value) {
+            return new variable(value);
         }
 
-        EXPORT void* variable_stay(void* v) {
-            variable* var = reinterpret_cast<variable*>(v);
-            stay_constraint* s = new stay_constraint(*var);
-            return reinterpret_cast<void*>(s);
+        EXPORT stay_constraint* variable_stay(variable* v) {
+            return new stay_constraint(*v);
+        }
+
+        EXPORT linear_expression* variable_expression(variable* v) {
+            return new linear_expression(*v, 1, 0);
         }
 
         // expressions
-        EXPORT double expression_value(void* v) {
-            return reinterpret_cast<linear_expression*>(v)->evaluate();
+        EXPORT double expression_value(linear_expression* v) {
+            return v->evaluate();
         }
 
 #define OP(name, op)							\
-        EXPORT void* expression_ ## name (void* e, void* e2) {		\
+        EXPORT linear_expression* expression_ ## name                   \
+        (linear_expression* e, linear_expression* e2) {                 \
             try {                                                       \
-                *reinterpret_cast<linear_expression*>(e) op ## =  \
-                    *reinterpret_cast<linear_expression*>(e2);    \
+                *e op ## = *e2;                                         \
+                return e;                                               \
             } catch (...) {                                             \
                 return NULL;                                            \
             }                                                           \
-            return e;							\
         }                                                               \
-        EXPORT void* expression_ ## name ## _double(void* e, double v) { \
-            linear_expression e2(v);                              \
-            *reinterpret_cast<linear_expression*>(e) op ## = e2;	\
+        EXPORT linear_expression* expression_ ## name ## _double        \
+        (linear_expression* e, double v) {                              \
+            *e op ## = linear_expression(v);                            \
             return e;							\
         }
         OP(plus, +)
@@ -133,53 +127,51 @@ extern "C" {
 
         // inequality
 #define COMP(name, rel)                                                 \
-        EXPORT void* expression_ ## name (void* e1, void* e2) {		\
-            linear_expression le1 = *reinterpret_cast<linear_expression*>(e1); \
-            linear_expression le2 = *reinterpret_cast<linear_expression*>(e2); \
-            constraint* c = new constraint(linear_inequality(le1, rel, le2)); \
-            return reinterpret_cast<void*>(c);                          \
+        EXPORT constraint* expression_ ## name                          \
+        (linear_expression* le1, linear_expression* le2) {              \
+            return new constraint(linear_inequality(*le1, rel, *le2));  \
         }                                                               \
-        EXPORT void* expression_ ## name ## _double(void* e1, double v) { \
-            linear_expression le1 = *reinterpret_cast<linear_expression*>(e1); \
+        EXPORT constraint* expression_ ## name ## _double               \
+        (linear_expression* le1, double v) {                            \
             linear_expression le2 = linear_expression(v);               \
-            constraint* c = new constraint(linear_inequality(le1, rel, le2)); \
-            return reinterpret_cast<void*>(c);				\
+            return new constraint(linear_inequality(*le1, rel, le2));   \
         }
         COMP(leq, relation::leq)
         COMP(geq, relation::geq)
 
         // equation
-        EXPORT void* expression_equals(void* e1, void* e2) {
-            linear_expression le1 = *reinterpret_cast<linear_expression*>(e1);
-            linear_expression le2 = *reinterpret_cast<linear_expression*>(e2);
-            constraint* c = new constraint(linear_equation(le1, le2));
-            return reinterpret_cast<void*>(c);
+        EXPORT constraint* expression_equals
+        (linear_expression* le1, linear_expression* le2) {
+            return new constraint(linear_equation(*le1, *le2));
         }
-        EXPORT void* expression_equals_double(void* e1, double v) {
-            linear_expression le1 = *reinterpret_cast<linear_expression*>(e1);
+        EXPORT constraint* expression_equals_double
+        (linear_expression* le1, double v) {
             linear_expression le2 = linear_expression(v);
-            constraint* c = new constraint(linear_equation(le1, le2));
-            return reinterpret_cast<void*>(c);
+            return new constraint(linear_equation(*le1, le2));
         }
 
         // constraints
-        EXPORT void constraint_change_strength(void* c, void* str) {
-            reinterpret_cast<linear_constraint*>(c)->
-                change_strength(*reinterpret_cast<strength*>(str));
+        EXPORT void constraint_change_strength(linear_constraint* c, strength* str) {
+            c->change_strength(*str);
         }
 
         // strengths
 #define MAKE_STRENGTH(name, a, b, c)					\
-        EXPORT void* strength_ ## name () {                             \
-            return reinterpret_cast<void*>(new strength(a,b,c));	\
+        static strength* g_strength_ ## name = new strength(a,b,c);     \
+        EXPORT strength* strength_ ## name () {                         \
+            return g_strength_ ## name;                                 \
         }
         MAKE_STRENGTH(required,
                       std::numeric_limits<double>::max(),
                       std::numeric_limits<double>::max(),
                       std::numeric_limits<double>::max())
+        MAKE_STRENGTH(strongest, 100, 0, 0)
+        MAKE_STRENGTH(stronger, 10, 0, 0)
         MAKE_STRENGTH(strong, 1, 0, 0)
         MAKE_STRENGTH(medium, 0, 1, 0)
-        MAKE_STRENGTH(weak, 0, 0, 1)
+        MAKE_STRENGTH(weak, 0, 0, 100)
+        MAKE_STRENGTH(weaker, 0, 0, 10)
+        MAKE_STRENGTH(weakest, 0, 0, 1)
     }
 }
 
