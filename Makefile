@@ -60,7 +60,7 @@ default: ext/librheaffi.$(SOEXT)
 
 ext/librhea.$(SOEXT): rhea/rhea/*
 	mkdir -p ext
-	git subtree pull -P rhea https://github.com/Nocte-/rhea.git master
+	git subtree pull -P rhea https://github.com/Nocte-/rhea.git master || test -d rhea/rhea
 	mkdir -p rhea/build && cd rhea/build && cmake .. && make
 	cp -L rhea/build/rhea/librhea.$(SOEXT) ext/librhea.$(SOEXT)
 
