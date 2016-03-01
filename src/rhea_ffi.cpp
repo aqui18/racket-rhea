@@ -31,8 +31,13 @@ extern "C" {
             delete v;
         }
 
-        EXPORT void solver_add_constraint(solver* s, constraint* c) {
-            s->add_constraint(*c);
+        EXPORT int solver_add_constraint(solver* s, constraint* c) {
+            try {
+                s->add_constraint(*c);
+                return 0;
+            } catch(...) {
+                return 1;
+            }
         }
 
         EXPORT void solver_remove_constraint(solver* s, constraint* c) {
@@ -92,10 +97,6 @@ extern "C" {
             return new variable(value);
         }
 
-        EXPORT stay_constraint* variable_stay(variable* v) {
-            return new stay_constraint(*v);
-        }
-
         EXPORT linear_expression* variable_expression(variable* v) {
             return new linear_expression(*v, 1, 0);
         }
@@ -151,7 +152,7 @@ extern "C" {
         }
 
         // constraints
-        EXPORT void constraint_change_strength(linear_constraint* c, strength* str) {
+        EXPORT void constraint_change_strength(constraint* c, strength* str) {
             c->change_strength(*str);
         }
 

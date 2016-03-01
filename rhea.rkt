@@ -5,6 +5,7 @@
          racket/class
          racket/runtime-path)
 
+(provide (all-from-out racket/class))
 (provide cassowary% cassowary-constraint% cassowary-expression% cassowary-variable%)
 
 (define-runtime-path librhea "ext/librhea")
@@ -19,19 +20,18 @@
 
 (define-rhea solver_delete (_fun _solver-ptr -> _void) #:wrap (deallocator))
 (define-rhea solver_new (_fun -> _solver-ptr) #:wrap (allocator solver_delete))
-(define-rhea solver_add_constraint (_fun _solver-ptr _constraint-ptr -> _void))
+(define-rhea solver_add_constraint (_fun _solver-ptr _constraint-ptr -> _int))
 (define-rhea solver_remove_constraint (_fun _solver-ptr _constraint-ptr -> _void))
-(define-rhea solver_suggest (_fun _solver-ptr _expression-ptr _double -> _int))
-(define-rhea solver_add_edit_var (_fun _solver-ptr _expression-ptr -> _void))
+(define-rhea solver_suggest (_fun _solver-ptr _variable-ptr _double -> _int))
+(define-rhea solver_add_edit_var (_fun _solver-ptr _variable-ptr -> _void))
 (define-rhea solver_begin_edit (_fun _solver-ptr -> _void))
-(define-rhea solver_edit_value (_fun _solver-ptr _expression-ptr _double -> _void))
+(define-rhea solver_edit_value (_fun _solver-ptr _variable-ptr _double -> _void))
 (define-rhea solver_resolve (_fun _solver-ptr -> _int))
 (define-rhea solver_end_edit (_fun _solver-ptr -> _int))
 (define-rhea solver_solve (_fun _solver-ptr -> _int))
 
 ;; variables
 (define-rhea variable_new (_fun _double -> _variable-ptr))
-(define-rhea variable_stay (_fun _variable-ptr -> _constraint-ptr))
 (define-rhea variable_expression (_fun _variable-ptr -> _expression-ptr))
 
 ;; variable and expression operations
@@ -82,6 +82,9 @@
     (define/public (add-constraint c)
       (send c enable llsolver))
     
+    (define/public (remove-constraint c)
+      (send c disable llsolver))
+    
     (define/public (add-stay var [priority (weak-strength)])
       (send (send var stay-constraint priority) enable llsolver))
     
@@ -89,7 +92,7 @@
       (send var suggest_value llsolver v))
     
     (define/public (edit-value var v)
-      (send var edit_value llsolver v))
+      (send var edit-value llsolver v))
     
     (define/public (solve)
       (eq? (solver_solve llsolver) 0))
@@ -155,7 +158,7 @@
           [(number? v) (expression_geq_double llexpression (exact->inexact v))]
           [else (expression_geq llexpression (send v get-llexpression))])))
     
-    (define/public (== v)
+    (define/public (= v)
       (make-object cassowary-constraint%
         (cond
           [(number? v) (expression_equals_double llexpression (exact->inexact v))]
@@ -179,8 +182,7 @@
       (make-object cassowary-expression% (variable_expression llvariable)))
     
     (define/public (stay-constraint [priority (strength_weak)])
-      (let* ((llsc (variable_stay llvariable))
-             (sc (make-object cassowary-constraint% llsc)))
+      (let* ((sc (= (value))))
         (send sc change-strength priority)
         sc))
     
@@ -191,7 +193,7 @@
       (eq? (solver_suggest llsolver llvariable v) 0))
     
     (define/public (edit-value llsolver v)
-      (solver_edit_value llsolver llvariable v))
+      (solver_edit_value llsolver llvariable (exact->inexact v)))
     
     ;; TODO: Learn how Racket ppl generate parameterized forwarding methods
     (define/public (+ v) (send (get-expression) + v))
@@ -216,7 +218,7 @@
       (constraint_change_strength llconstraint prio))
     
     (define/public (enable llsolver)
-      (solver_add_constraint llsolver llconstraint))
+      (eq? 0 (solver_add_constraint llsolver llconstraint)))
     
     (define/public (disable llsolver)
       (solver_remove_constraint llsolver llconstraint))))
