@@ -37,6 +37,11 @@ extern "C" {
                 add_constraint(*reinterpret_cast<constraint*>(c));
         }
 
+        EXPORT void solver_remove_constraint(void* s, void* c) {
+            (reinterpret_cast<solver*>(s))->
+                remove_constraint(*reinterpret_cast<constraint*>(c));
+        }
+
         EXPORT int solver_suggest(void* s, void* v, double x) {
             try {
                 (reinterpret_cast<simplex_solver*>(s))->
@@ -70,8 +75,13 @@ extern "C" {
             }
         }
 
-        EXPORT void solver_end_edit(void* s) {
-            reinterpret_cast<simplex_solver*>(s)->end_edit();
+        EXPORT int solver_end_edit(void* s) {
+            try {
+                reinterpret_cast<simplex_solver*>(s)->end_edit();
+                return 0;
+            } catch (...) {
+                return 1;
+            }
         }
 
         EXPORT int solver_solve(void* s) {
@@ -153,7 +163,7 @@ extern "C" {
         }
 
         // constraints
-        EXPORT void constriant_change_strength(void* c, void* str) {
+        EXPORT void constraint_change_strength(void* c, void* str) {
             reinterpret_cast<linear_constraint*>(c)->
                 change_strength(*reinterpret_cast<strength*>(str));
         }
