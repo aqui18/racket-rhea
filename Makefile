@@ -30,3 +30,7 @@ clean:
 	rm -f rhea/rhea/rhea_ffi.cpp
 	rm -rf rhea/build
 	rm -rf ext
+
+update_rhea:
+	rm -f rhea/rhea/rhea_ffi.cpp
+	git subtree pull -P rhea https://github.com/Nocte-/rhea.git master || test -d rhea/rhea
