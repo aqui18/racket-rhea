@@ -140,7 +140,20 @@
   (send solver add-constraint (send x = 10))
   (sat? solver)
   (check-equal? #f (send solver add-constraint (send x = 5)))
+  )
+
+(define (test-suggest)
+  (define x (new cassowary-variable%))
+  (define solver (new cassowary%))
+
+  (send solver add-constraint (send x <= 10))
+  (sat? solver)
+  (check approx? (send x value) 10)
+
+  (check-equal? (send solver suggest-value x 4) #t)
+  (check approx? (send x value) 4)
 )
+
 
 (define rhea-tests 
   (test-suite
@@ -149,6 +162,7 @@
    (add-delete2-test)
    (test-edit2vars)
    (test-inconsistent1)
+   (test-suggest)
    ))
 
 (time (run-tests rhea-tests))

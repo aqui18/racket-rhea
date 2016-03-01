@@ -89,7 +89,7 @@
       (send (send var stay-constraint priority) enable llsolver))
     
     (define/public (suggest-value var v)
-      (send var suggest_value llsolver v))
+      (send var suggest-value llsolver v))
     
     (define/public (edit-value var v)
       (send var edit-value llsolver v))
@@ -190,7 +190,7 @@
       (solver_add_edit_var llsolver llvariable))
     
     (define/public (suggest-value llsolver v)
-      (eq? (solver_suggest llsolver llvariable v) 0))
+      (eq? (solver_suggest llsolver llvariable (exact->inexact v)) 0))
     
     (define/public (edit-value llsolver v)
       (solver_edit_value llsolver llvariable (exact->inexact v)))
