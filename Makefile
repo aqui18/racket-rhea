@@ -1,10 +1,6 @@
-# configure shared library options and native binary names
-
-# defaults for Linux
 SOEXT=so
 OS := $(strip $(shell uname -s | tr '[:upper:]' '[:lower:]'))
 
-# Default value of $OS on Windows is Windows_NT
 ifneq ($(findstring cygwin, $(OS)),)
   SOEXT=dll
 endif
@@ -17,20 +13,21 @@ ifeq ($(OS), darwin)
   SOEXT=dylib
 endif
 
-default: ext/librheaffi.$(SOEXT)
+default: extern/librheaffi.$(SOEXT)
 
-ext/librheaffi.$(SOEXT): src/rhea_ffi.cpp
+extern/librheaffi.$(SOEXT): src/rhea_ffi.cpp
 	mkdir -p ext
-	git subtree pull -P rhea https://github.com/Nocte-/rhea.git master || test -d rhea/rhea
+	git clone rhea https://github.com/Nocte-/rhea.git || test -d rhea/rhea
 	cp $^ rhea/rhea/
 	mkdir -p rhea/build && cd rhea/build && cmake .. && make rhea
-	cp -L rhea/build/rhea/librhea.$(SOEXT) ext/librhea.$(SOEXT)
+	cp -L rhea/build/rhea/librhea.$(SOEXT) extern/librhea.$(SOEXT)
 
 clean:
 	rm -f rhea/rhea/rhea_ffi.cpp
 	rm -rf rhea/build
-	rm -rf ext
+	rm -rf extern
 
 update_rhea:
 	rm -f rhea/rhea/rhea_ffi.cpp
-	git subtree pull -P rhea https://github.com/Nocte-/rhea.git master || test -d rhea/rhea
+	cd rhea && git pull
+	test -d rhea/rhea
