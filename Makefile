@@ -15,7 +15,7 @@ endif
 
 default: extern/librheaffi.$(SOEXT)
 
-extern/librheaffi.$(SOEXT): src/rhea_ffi.cpp
+extern/librheaffi.$(SOEXT): rhea_ffi.cpp
 	mkdir -p ext
 	git clone rhea https://github.com/Nocte-/rhea.git || test -d rhea/rhea
 	cp $^ rhea/rhea/
